@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio cache / metadata
+.vs/
+*.vcxproj.user
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Others
+*.dbmdl
+*.bak
+*.ldf
+*.mdf
