@@ -20,6 +20,7 @@ internal class Program
         //Console.WriteLine($"CampId Many Item = {getAllCampIdElapsedTime}");
         ////Elapsed:
 
+        //ToDo: SelectByCampIdTop 10
         var (TopTenData, getTopTenElapsedTime) = sql.SelectByMailIdWithTop(10);
         Console.WriteLine($"Top Ten = {getTopTenElapsedTime}");
 
@@ -38,3 +39,17 @@ internal class Program
         //}
     }
 }
+
+/*
+1. Tüm statüler Q olacak.
+2. CampId bazında x adet çekilecek.
+3. Çekilen MailId ler S staüsüne geçirilecek.
+3. Bu işlem tüm Q'dekiler S'ye geçene kadar devam edecek.
+
+CampId bazında x adet çekilecek --> While'a koy. Bu sorgudan 0 sonuç gelene kadar devam et.
+Counter ekle 50 defa, 100 defa, 200 defa, 500 defa, 1000 defa, 2000 defa, 5000 defa, 10000 defa
+
+Select ve Update işlemleri için ayrı elapsed time tut.
+Bir de topalm için tut.
+
+*/
