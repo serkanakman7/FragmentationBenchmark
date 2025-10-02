@@ -44,16 +44,16 @@ namespace FragmentationSpeedControl.DataAccess
             return (ds, Convert.ToInt32(sw.Elapsed.TotalSeconds));
         }
 
-        public (DataSet ds, int elapsedTime) GetTopTenCustomerManager()
+        public (DataSet ds, int elapsedTime) SelectByMailIdWithTop(int top)
         {
             Stopwatch sw = Stopwatch.StartNew();
-            string commandText = "SELECT TOP (10) MAIL_ID FROM dbo.EMAILS_POOL_HIGH AS E WITH (ROWLOCK, READPAST, UPDLOCK, INDEX = IX_EMAILS_POOL_HIGH_STATUS_MAIL_ID_FILTERED) WHERE  E.STATUS = 'Q'";
+            string commandText = $"SELECT TOP ({top}) MAIL_ID FROM dbo.EMAILS_POOL_HIGH AS E WITH (ROWLOCK, READPAST, UPDLOCK, INDEX = IX_EMAILS_POOL_HIGH_STATUS_MAIL_ID_FILTERED) WHERE  E.STATUS = 'Q'";
             var ds = ExecuteDataSet(commandText, null);
             sw.Stop();
             return (ds, Convert.ToInt32(sw.Elapsed.TotalSeconds));
         }
 
-        public (DataSet ds, int elapsedTime) GetCustomerManagerMailId(string mailId)
+        public (DataSet ds, int elapsedTime) SelectByMailId(string mailId)
         {
             Stopwatch sw = Stopwatch.StartNew();
             string commandText = $"SELECT * FROM dbo.EMAILS_POOL_HIGH with(nolock) WHERE MAIL_ID='{mailId}'";
@@ -62,7 +62,7 @@ namespace FragmentationSpeedControl.DataAccess
             return (ds, Convert.ToInt32(sw.Elapsed.TotalSeconds));
         }
 
-        public (DataSet ds, int elapsedTime) GetAllCustomerManagerCampId()
+        public (DataSet ds, int elapsedTime) SelectByCampId()
         {
             Stopwatch sw = Stopwatch.StartNew();
             string commandText = $"SELECT * FROM dbo.EMAILS_POOL_HIGH with(nolock) WHERE CAMP_ID= '324E3102A2C6468AA2EA95345FB1B68E' ";
