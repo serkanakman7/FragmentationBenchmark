@@ -85,5 +85,15 @@ namespace FragmentationSpeedControl.DataAccess
                             WHERE i.object_id = OBJECT_ID(N'dbo.EMAILS_POOL_HIGH')";
             return ExecuteDataSet(commandText, null);
         }
+
+        internal string[] SelectNextMailsCampId(int v)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void UpdateStatus(string[] mails, string status)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

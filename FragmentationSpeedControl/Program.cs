@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Text;
 using FragmentationSpeedControl.DataAccess;
 
@@ -22,7 +23,37 @@ internal class Program
 
         //ToDo: SelectByCampIdTop 10
         var (TopTenData, getTopTenElapsedTime) = sql.SelectByMailIdWithTop(10);
+
         Console.WriteLine($"Top Ten = {getTopTenElapsedTime}");
+
+        Stopwatch swSelect = new Stopwatch();
+        Stopwatch swUpdate = new Stopwatch();
+        Stopwatch swTotal = Stopwatch.StartNew();
+        int counter = 0;
+        while (true)
+        {
+            swSelect.Start();
+            string[] mails = sql.SelectNextMailsCampId(10);//Sataus=Q
+            swSelect.Stop();
+
+
+            if (mails.Length == 0)
+                break;
+
+            swUpdate.Start();
+            sql.UpdateStatus(mails, "S");
+            swUpdate.Stop();
+
+            counter++;
+
+            if (counter > 10)
+                break;
+
+        }
+        swTotal.Stop();
+
+        //ToDo: Report Results.
+
 
         //sql.DeleteAllCustomerManager();
 
