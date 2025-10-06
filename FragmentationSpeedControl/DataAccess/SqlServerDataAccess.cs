@@ -1,9 +1,10 @@
-﻿using System.Data;
+﻿using Microsoft.Practices.EnterpriseLibrary.Data;
+using Microsoft.Practices.EnterpriseLibrary.Data.Sql;
+using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using Microsoft.Practices.EnterpriseLibrary.Data;
-using Microsoft.Practices.EnterpriseLibrary.Data.Sql;
+using System.Diagnostics.Metrics;
 
 namespace FragmentationSpeedControl.DataAccess
 {
@@ -103,24 +104,13 @@ namespace FragmentationSpeedControl.DataAccess
 
         public void UpdateStatus(string[] mails, string status)
         {
-            List<string> mailIds = new List<string>();
-            int count = 0;
 
-            var parameters = new List<DbParameter>() { new SqlParameter("@status", status) };
-
-            foreach (string mail in mails)
-            {
-                string paramName = "@id" + count;
-                parameters.Add(new SqlParameter(paramName, SqlDbType.VarChar, 32) { Value = mail});
-                mailIds.Add(paramName);
-                count++;
-            }
+            mails = new List<string>() { "mail1", "mail2" }.ToArray();
+            List<string> mailIds = mails.Select(p => $"'{p}'").ToList();
 
             string commandText = $"UPDATE dbo.EMAILS_POOL_HIGH SET STATUS = @status WHERE MAIL_ID IN ({string.Join(",", mailIds)})";
 
             using DbCommand command = Db.GetSqlStringCommand(commandText);
-
-            command.Parameters.AddRange(parameters.ToArray());
 
             Db.ExecuteNonQuery(command);
         }
@@ -131,6 +121,20 @@ namespace FragmentationSpeedControl.DataAccess
             DbCommand command = Db.GetSqlStringCommand(commandText);
             command.CommandTimeout = 1500;
             Db.ExecuteNonQuery(command);
+
+//ToDo: bunu kullan
+//            string sql = $@"
+//ALTER INDEX [{indexEntry.IndexName}] ON [dbo].[{indexEntry.TableName}]
+//     REBUILD PARTITION = ALL WITH (PAD_INDEX = OFF
+//                                 , STATISTICS_NORECOMPUTE = OFF
+//                                 , SORT_IN_TEMPDB = OFF
+//                                 , ONLINE = ON
+//                                 , ALLOW_ROW_LOCKS = ON
+//                                 , ALLOW_PAGE_LOCKS = ON
+//                                 , FILLFACTOR = 75
+//                                 , MAXDOP = 2)";
+//                                 , MAXDOP = 2)";
+
         }
     }
 }

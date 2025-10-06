@@ -53,9 +53,11 @@ internal class Program
 
         if (fragmentationRate > 30)
         {
+            //ToDo: Rebuild Index elapsed al.
             sql.IndexsRebuild();
         }
 
+        //ToDo: Fragmanttion Rate elapsed al.
         ds = sql.FragmentationRate();
         foreach (DataRow row in ds.Tables[0].Rows)
         {
