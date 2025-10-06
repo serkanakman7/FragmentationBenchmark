@@ -10,30 +10,18 @@ internal class Program
     {
         // ToDo: Insert kısmı önemli değil. Ama sadece her test çalıştırıldığında 10 milyon kayıt var ve defrated. select + rebuild + select.
         SqlServerDataAccess sql = new SqlServerDataAccess();
-        int insertElapsedTime = sql.DoBulkInsert("HIGH", @"C:\Users\serka\OneDrive\Masaüstü\FragmentationTest\250000DummyData.txt", "", "");
-        Console.WriteLine(insertElapsedTime);
-
-        //var (MailIdData, getMailId) = sql.SelectByMailId("B346369B5A344B9C8746018D7A72B8B3");
-        //Console.WriteLine($"MailId One Item = {getMailId}");
-        ////Elapsed:
-
-        //var (CampIdData, getAllCampIdElapsedTime) = sql.SelectByCampId();
-        //Console.WriteLine($"CampId Many Item = {getAllCampIdElapsedTime}");
-        ////Elapsed:
-
-        //ToDo: SelectByCampIdTop 10
-        var (TopTenData, getTopTenElapsedTime) = sql.SelectByMailIdWithTop(10);
-
-        Console.WriteLine($"Top Ten = {getTopTenElapsedTime}");
+        //int insertelapsedtime = sql.DoBulkInsert("HIGH", @"C:\Users\serka\OneDrive\Masaüstü\FragmentationTest\10000000DummyData.txt", "", "");
+        //Console.WriteLine(insertelapsedtime);
 
         Stopwatch swSelect = new Stopwatch();
         Stopwatch swUpdate = new Stopwatch();
-        Stopwatch swTotal = Stopwatch.StartNew();
+        Stopwatch swTotal = new Stopwatch();
+        swTotal.Start();
         int counter = 0;
         while (true)
         {
             swSelect.Start();
-            string[] mails = sql.SelectNextMailsCampId(10);//Sataus=Q
+            string[] mails = sql.SelectNextMailsCampId(1000);//Sataus=Q
             swSelect.Stop();
 
 
@@ -41,33 +29,82 @@ internal class Program
                 break;
 
             swUpdate.Start();
-            sql.UpdateStatus(mails, "S");
+            sql.UpdateStatus(mails, "W");
             swUpdate.Stop();
 
             counter++;
 
-            if (counter > 10)
+            if (counter > 2000)
                 break;
 
         }
         swTotal.Stop();
 
-        //ToDo: Report Results.
+        Console.WriteLine($"Rebuild edilmemiş Select sorgusu = {swSelect.Elapsed.TotalSeconds}");
+        Console.WriteLine($"Rebuild edilmemiş Update sorgusu = {swUpdate.Elapsed.TotalSeconds}");
+        Console.WriteLine($"Rebuild edilmemiş Toplam(Select + Update) sorgu = {swTotal.Elapsed.TotalSeconds}");
+
+        var ds = sql.FragmentationRate();
+        foreach (DataRow row in ds.Tables[0].Rows)
+        {
+            Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
+        }
+        var fragmentationRate = Convert.ToDecimal(ds.Tables[0].Rows[3]["avg_fragmentation_in_percent"]);
+
+        if (fragmentationRate > 30)
+        {
+            sql.IndexsRebuild();
+        }
+
+        ds = sql.FragmentationRate();
+        foreach (DataRow row in ds.Tables[0].Rows)
+        {
+            Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
+        }
+
+        swSelect.Reset();
+        swUpdate.Reset();
+        swTotal.Reset();
+        swTotal.Start();
+        counter = 0;
+        while (true)
+        {
+            swSelect.Start();
+            string[] mails = sql.SelectNextMailsCampId(500);//Sataus=Q
+            swSelect.Stop();
+
+
+            if (mails.Length == 0)
+                break;
+
+            swUpdate.Start();
+            sql.UpdateStatus(mails, "Q");
+            swUpdate.Stop();
+
+            counter++;
+
+            if (counter > 1000)
+                break;
+
+        }
+        swTotal.Stop();
+
+        //Console.WriteLine($"Rebuild edilmiş Select sorgusu = {swSelect.Elapsed.TotalSeconds}");
+        //Console.WriteLine($"Rebuild edilmiş Update sorgusu = {swUpdate.Elapsed.TotalSeconds}");
+        //Console.WriteLine($"Rebuild edilmiş Toplam(Select + Update) sorgu = {swTotal.Elapsed.TotalSeconds}");
+
+        //ds = sql.FragmentationRate();
+        //foreach (DataRow row in ds.Tables[0].Rows)
+        //{
+        //    Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
+        //}
 
 
         //sql.DeleteAllCustomerManager();
 
         //ToDo: Rebuild Index
 
-        sql.SelectByMailIdWithTop(10);
-        Console.WriteLine($"Top Ten = {getTopTenElapsedTime}");
         //Elapsed:
-
-        //var ds = sql.FragmentationRate();
-        //foreach (DataRow row in ds.Tables[0].Rows)
-        //{
-        //    Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
-        //}
     }
 }
 

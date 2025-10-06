@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using Microsoft.Practices.EnterpriseLibrary.Data;
 using Microsoft.Practices.EnterpriseLibrary.Data.Sql;
@@ -20,13 +21,13 @@ namespace FragmentationSpeedControl.DataAccess
         {
             Stopwatch sw = Stopwatch.StartNew();
             DbCommand dbComm = Db.GetStoredProcCommand("dbo.usp_campaignmanager_bulk_insert", customerPoolName, bulkFile, bulkFileInInbox, viralBulkFile);
-            dbComm.CommandTimeout = 1500; // 25dk kaç olmalı diye bir sor
+            dbComm.CommandTimeout = 2100; // 25dk kaç olmalı diye bir sor
             Db.ExecuteNonQuery(dbComm);
             sw.Stop();
             return Convert.ToInt32(sw.Elapsed.TotalSeconds);
         }
 
-        public DataSet ExecuteDataSet(string commandText, IReadOnlyList<DbParameter> parameters)
+        public DataSet ExecuteDataSet(string commandText, IReadOnlyList<DbParameter> parameters = null)
         {
             using DbCommand dbComm = Db.GetSqlStringCommand(commandText);
             if (parameters != null && parameters.Count > 0)
@@ -74,7 +75,8 @@ namespace FragmentationSpeedControl.DataAccess
         public void DeleteAllCustomerManager()
         {
             string commandText = "TRUNCATE TABLE EUROMSG.dbo.EMAILS_POOL_HIGH";
-            Db.ExecuteNonQuery(commandText);
+            using DbCommand dbCommand = Db.GetSqlStringCommand(commandText);
+            Db.ExecuteNonQuery(dbCommand);
         }
 
         public DataSet FragmentationRate()
@@ -86,14 +88,49 @@ namespace FragmentationSpeedControl.DataAccess
             return ExecuteDataSet(commandText, null);
         }
 
-        internal string[] SelectNextMailsCampId(int v)
+        public string[] SelectNextMailsCampId(int top)
         {
-            throw new NotImplementedException();
+            string commandText = $"SELECT TOP ({top}) MAIL_ID FROM dbo.EMAILS_POOL_HIGH AS E WITH (ROWLOCK, READPAST, UPDLOCK, INDEX = IX_EMAILS_POOL_HIGH_STATUS_MAIL_ID_FILTERED) WHERE  E.STATUS = 'Q'";
+
+            //var parameters = //new List<DbParameter>() { new SqlParameter("@topValue", top) };
+
+            var ds = ExecuteDataSet(commandText);
+
+            string[] mailIdValues = ds.Tables[0].AsEnumerable().Select(r => r["MAIL_ID"].ToString()).ToArray();
+
+            return mailIdValues;
         }
 
-        internal void UpdateStatus(string[] mails, string status)
+        public void UpdateStatus(string[] mails, string status)
         {
-            throw new NotImplementedException();
+            List<string> mailIds = new List<string>();
+            int count = 0;
+
+            var parameters = new List<DbParameter>() { new SqlParameter("@status", status) };
+
+            foreach (string mail in mails)
+            {
+                string paramName = "@id" + count;
+                parameters.Add(new SqlParameter(paramName, SqlDbType.VarChar, 32) { Value = mail});
+                mailIds.Add(paramName);
+                count++;
+            }
+
+            string commandText = $"UPDATE dbo.EMAILS_POOL_HIGH SET STATUS = @status WHERE MAIL_ID IN ({string.Join(",", mailIds)})";
+
+            using DbCommand command = Db.GetSqlStringCommand(commandText);
+
+            command.Parameters.AddRange(parameters.ToArray());
+
+            Db.ExecuteNonQuery(command);
+        }
+
+        public void IndexsRebuild()
+        {
+            string commandText = "ALTER INDEX ALL ON EUROMSG.dbo.EMAILS_POOL_HIGH REBUILD";
+            DbCommand command = Db.GetSqlStringCommand(commandText);
+            command.CommandTimeout = 1500;
+            Db.ExecuteNonQuery(command);
         }
     }
 }
