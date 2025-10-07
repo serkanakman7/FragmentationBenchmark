@@ -3,15 +3,20 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Text;
 using FragmentationSpeedControl.DataAccess;
+using FragmentationSpeedControl.Utilities;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        // ToDo: Insert kısmı önemli değil. Ama sadece her test çalıştırıldığında 10 milyon kayıt var ve defrated. select + rebuild + select.
+        int retryCount = 500;
+        int pullMailIdCount = 100;
         SqlServerDataAccess sql = new SqlServerDataAccess();
-        //int insertelapsedtime = sql.DoBulkInsert("HIGH", @"C:\Users\serka\OneDrive\Masaüstü\FragmentationTest\10000000DummyData.txt", "", "");
+        //int insertelapsedtime = sql.DoBulkInsert("HIGH", @"C:\Users\serka\OneDrive\Masaüstü\FragmentationTest\2000000DummyData.txt", "", "");
         //Console.WriteLine(insertelapsedtime);
+
+        var fragmentationInfoDataSet = sql.FragmentationRate();
+        ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
 
         Stopwatch swSelect = new Stopwatch();
         Stopwatch swUpdate = new Stopwatch();
@@ -21,7 +26,7 @@ internal class Program
         while (true)
         {
             swSelect.Start();
-            string[] mails = sql.SelectNextMailsCampId(1000);//Sataus=Q
+            string[] mails = sql.SelectNextMailsCampId(pullMailIdCount);
             swSelect.Stop();
 
 
@@ -34,34 +39,26 @@ internal class Program
 
             counter++;
 
-            if (counter > 2000)
+            if (counter > retryCount)
                 break;
 
         }
         swTotal.Stop();
 
-        Console.WriteLine($"Rebuild edilmemiş Select sorgusu = {swSelect.Elapsed.TotalSeconds}");
-        Console.WriteLine($"Rebuild edilmemiş Update sorgusu = {swUpdate.Elapsed.TotalSeconds}");
-        Console.WriteLine($"Rebuild edilmemiş Toplam(Select + Update) sorgu = {swTotal.Elapsed.TotalSeconds}");
+        ConsoleReporter.PrintRebuildInfo("Non-Rebuild", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
 
-        var ds = sql.FragmentationRate();
-        foreach (DataRow row in ds.Tables[0].Rows)
-        {
-            Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
-        }
-        var fragmentationRate = Convert.ToDecimal(ds.Tables[0].Rows[3]["avg_fragmentation_in_percent"]);
+        fragmentationInfoDataSet = sql.FragmentationRate();
+        ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
+
+        var fragmentationRate = Convert.ToDecimal(fragmentationInfoDataSet.Tables[0].Rows[4]["avg_fragmentation_in_percent"]);
 
         if (fragmentationRate > 30)
         {
-            //ToDo: Rebuild Index elapsed al.
             sql.IndexsRebuild();
-        }
+            Console.WriteLine();
 
-        //ToDo: Fragmanttion Rate elapsed al.
-        ds = sql.FragmentationRate();
-        foreach (DataRow row in ds.Tables[0].Rows)
-        {
-            Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
+            fragmentationInfoDataSet = sql.FragmentationRate();
+            ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
         }
 
         swSelect.Reset();
@@ -72,7 +69,7 @@ internal class Program
         while (true)
         {
             swSelect.Start();
-            string[] mails = sql.SelectNextMailsCampId(500);//Sataus=Q
+            string[] mails = sql.SelectNextMailsCampId(pullMailIdCount);
             swSelect.Stop();
 
 
@@ -80,46 +77,23 @@ internal class Program
                 break;
 
             swUpdate.Start();
-            sql.UpdateStatus(mails, "Q");
+            sql.UpdateStatus(mails, "W");
             swUpdate.Stop();
 
             counter++;
 
-            if (counter > 1000)
+            if (counter > retryCount)
                 break;
 
         }
         swTotal.Stop();
 
-        //Console.WriteLine($"Rebuild edilmiş Select sorgusu = {swSelect.Elapsed.TotalSeconds}");
-        //Console.WriteLine($"Rebuild edilmiş Update sorgusu = {swUpdate.Elapsed.TotalSeconds}");
-        //Console.WriteLine($"Rebuild edilmiş Toplam(Select + Update) sorgu = {swTotal.Elapsed.TotalSeconds}");
+        ConsoleReporter.PrintRebuildInfo("Rebuild", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
 
-        //ds = sql.FragmentationRate();
-        //foreach (DataRow row in ds.Tables[0].Rows)
-        //{
-        //    Console.WriteLine($"Index Name: {row["name"]}, Avg Fragmentation: {row["avg_fragmentation_in_percent"]}, Page Count: {row["page_count"]}");
-        //}
+        fragmentationInfoDataSet = sql.FragmentationRate();
+        ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
 
 
         //sql.DeleteAllCustomerManager();
-
-        //ToDo: Rebuild Index
-
-        //Elapsed:
     }
 }
-
-/*
-1. Tüm statüler Q olacak.
-2. CampId bazında x adet çekilecek.
-3. Çekilen MailId ler S staüsüne geçirilecek.
-3. Bu işlem tüm Q'dekiler S'ye geçene kadar devam edecek.
-
-CampId bazında x adet çekilecek --> While'a koy. Bu sorgudan 0 sonuç gelene kadar devam et.
-Counter ekle 50 defa, 100 defa, 200 defa, 500 defa, 1000 defa, 2000 defa, 5000 defa, 10000 defa
-
-Select ve Update işlemleri için ayrı elapsed time tut.
-Bir de topalm için tut.
-
-*/
