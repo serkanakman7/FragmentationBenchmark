@@ -3,17 +3,32 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Text;
 using FragmentationSpeedControl.DataAccess;
+using FragmentationSpeedControl.DataAccess.Repositories;
+using FragmentationSpeedControl.DataAccess.SqlServer;
 using FragmentationSpeedControl.Utilities;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
-        int retryCount = 500;
-        int pullMailIdCount = 100;
-        SqlServerDataAccess sql = new SqlServerDataAccess();
-        //int insertelapsedtime = sql.DoBulkInsert("HIGH", @"C:\Users\serka\OneDrive\Masaüstü\FragmentationTest\2000000DummyData.txt", "", "");
-        //Console.WriteLine(insertelapsedtime);
+        int retryCount = 1000;
+        int pullMailIdCount = 1000;
+
+        SqlServerDataAccess sql = new SqlServerDataAccess("deneme");
+        EmailPoolHighRepository emailPoolHighRepository = new EmailPoolHighRepository(sql);
+        SourceRepository sourceRepository = new SourceRepository(sql);
+        //int insertelapsedtime = sql.DoBulkInsertSp("HIGH", @"C:\Users\serkan.akman\Desktop\FragmentationTest\2000000DummyData.txt", "", "");
+        //Console.WriteLine($"Insert işleminin süresi = {insertelapsedtime}");
+
+        //FileDataAccess fileDataAccess = new FileDataAccess(@"C:\Users\serkan.akman\Desktop\FragmentationTest\10000000DummyData.txt");
+        //DataTable fileDataTable = await fileDataAccess.BulkInsertFromTxtAsync();
+        //int insertElapsedTime = await sql.BulkInsertAsync(fileDataTable);
+        //Console.WriteLine($"Insert işleminin süresi = {insertElapsedTime}");
+
+        int insertElapsedTime = sourceRepository.InsertSelectSource();
+        Console.WriteLine($"Insert işleminin süresi = {insertElapsedTime}");
+
+        emailPoolHighRepository.UpdateStatusAllQ("Q");
 
         var fragmentationInfoDataSet = sql.FragmentationRate();
         ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
@@ -26,7 +41,7 @@ internal class Program
         while (true)
         {
             swSelect.Start();
-            string[] mails = sql.SelectNextMailsCampId(pullMailIdCount);
+            string[] mails = emailPoolHighRepository.SelectNextMailsCampId(pullMailIdCount);
             swSelect.Stop();
 
 
@@ -34,7 +49,7 @@ internal class Program
                 break;
 
             swUpdate.Start();
-            sql.UpdateStatus(mails, "W");
+            emailPoolHighRepository.UpdateStatus(mails, "W");
             swUpdate.Stop();
 
             counter++;
@@ -45,10 +60,10 @@ internal class Program
         }
         swTotal.Stop();
 
-        ConsoleReporter.PrintRebuildInfo("Non-Rebuild", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
+        ConsoleReporter.PrintRebuildInfo("Non-", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
 
-        fragmentationInfoDataSet = sql.FragmentationRate();
-        ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
+        //fragmentationInfoDataSet = sql.FragmentationRate();
+        //ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
 
         var fragmentationRate = Convert.ToDecimal(fragmentationInfoDataSet.Tables[0].Rows[4]["avg_fragmentation_in_percent"]);
 
@@ -69,7 +84,7 @@ internal class Program
         while (true)
         {
             swSelect.Start();
-            string[] mails = sql.SelectNextMailsCampId(pullMailIdCount);
+            string[] mails = emailPoolHighRepository.SelectNextMailsCampId(pullMailIdCount);
             swSelect.Stop();
 
 
@@ -77,7 +92,7 @@ internal class Program
                 break;
 
             swUpdate.Start();
-            sql.UpdateStatus(mails, "W");
+            emailPoolHighRepository.UpdateStatus(mails, "W");
             swUpdate.Stop();
 
             counter++;
@@ -88,12 +103,12 @@ internal class Program
         }
         swTotal.Stop();
 
-        ConsoleReporter.PrintRebuildInfo("Rebuild", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
+        ConsoleReporter.PrintRebuildInfo("", swSelect.Elapsed.TotalSeconds, swUpdate.Elapsed.TotalSeconds, swTotal.Elapsed.TotalSeconds);
 
         fragmentationInfoDataSet = sql.FragmentationRate();
         ConsoleReporter.PrintFragmentationInfo(fragmentationInfoDataSet);
 
 
-        //sql.DeleteAllCustomerManager();
+        emailPoolHighRepository.DeleteAllCustomerManager();
     }
 }

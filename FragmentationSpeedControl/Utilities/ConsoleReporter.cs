@@ -33,9 +33,9 @@ namespace FragmentationSpeedControl.Utilities
             Console.WriteLine();
             Console.WriteLine($"*************************        {rebuildState.ToUpper()} REBUILD INFO        *************************");
             Console.WriteLine();
-            Console.WriteLine($"Select {rebuildState} Rebuild = {selectTime}");
-            Console.WriteLine($"Update {rebuildState} Rebuild = {updateTime}");
-            Console.WriteLine($"Total {rebuildState} Rebuild = {totalTime}");
+            Console.WriteLine($"Select {rebuildState}Rebuild = {selectTime}");
+            Console.WriteLine($"Update {rebuildState}Rebuild = {updateTime}");
+            Console.WriteLine($"Total {rebuildState}Rebuild = {totalTime}");
             Console.WriteLine();
         }
     }

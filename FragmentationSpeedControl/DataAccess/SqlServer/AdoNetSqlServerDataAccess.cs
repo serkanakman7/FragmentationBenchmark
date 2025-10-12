@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Practices.EnterpriseLibrary.Data;
 
-namespace FragmentationSpeedControl.DataAccess
+namespace FragmentationSpeedControl.DataAccess.SqlServer
 {
     public class AdoNetSqlServerDataAccess
     {
